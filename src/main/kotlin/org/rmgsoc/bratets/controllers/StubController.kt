@@ -7,6 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 class StubController {
     @RequestMapping("/")
     fun index() : String {
-        return ""
+        return "stub"
     }
 }
