@@ -24,7 +24,7 @@ class BratetsModuleService(
     }
 
     override fun processMessage(text: String, from: Long) {
-        if (lastBrattsyTime.plus(5, ChronoUnit.MINUTES).isBefore(Instant.now())) {
+        if (lastBrattsyTime.plus(2, ChronoUnit.MINUTES).isBefore(Instant.now())) {
             telegramConnectorService.sendTextMessageToChat(from, "Братцы")
 
             lastBrattsyTime = Instant.now()
