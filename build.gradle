@@ -1,12 +1,10 @@
 buildscript {
 	ext {
 		kotlinVersion = '1.1.51'
-		springBootVersion = '2.0.0.M4'
+		springBootVersion = '1.5.7.RELEASE'
 	}
 	repositories {
 		mavenCentral()
-		maven { url "https://repo.spring.io/snapshot" }
-		maven { url "https://repo.spring.io/milestone" }
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
@@ -47,6 +45,7 @@ configurations {
 dependencies {
 	compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-configuration-processor')
+    compile('org.springframework.boot:spring-boot-starter-thymeleaf')
 	compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:${kotlinVersion}")
 	compile("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
     compile ('com.github.yanex:kotlin-telegram-bot-api:v0.1.5')
