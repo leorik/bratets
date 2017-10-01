@@ -9,10 +9,10 @@ import org.yanex.telegram.entities.Update
 import org.yanex.telegram.handler.AbstractUpdateVisitor
 import org.yanex.telegram.handler.UpdateVisitor
 import org.yanex.telegram.handler.VisitorUpdateHandler
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import javax.annotation.PostConstruct
 import kotlin.concurrent.thread
 
 @Service
@@ -43,7 +43,8 @@ class YanexTelegramConnectorService(
     private val bot : TelegramBot = TelegramBot.create(token = telegramProperties.key!!,
             logLevel = HttpLoggingInterceptor.Level.BASIC)
 
-    init {
+    @PostConstruct
+    fun setup() {
         logger.debug("Initializing telegram service")
 
         checkupThread = thread(
@@ -76,6 +77,7 @@ class YanexTelegramConnectorService(
         try {
             val request = bot.sendMessage(chatId, message)
             request.execute()
+
             logger.debug("Message sent successfully")
         } catch (ex : Exception) {
             logger.error("Error sending message \"$message\" to chat with ID = $chatId", ex)
