@@ -3,6 +3,7 @@ package org.rmgsoc.bratets.services.telegram
 import okhttp3.logging.HttpLoggingInterceptor
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.yanex.telegram.TelegramBot
 import org.yanex.telegram.entities.Update
@@ -16,6 +17,7 @@ import javax.annotation.PostConstruct
 import kotlin.concurrent.thread
 
 @Service
+@Profile("prod")
 class YanexTelegramConnectorService(
         telegramProperties : TelegramProperties
 ): TelegramConnectorService, DisposableBean {
