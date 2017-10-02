@@ -1,21 +1,18 @@
 package org.rmgsoc.bratets.services.modules
 
 import org.rmgsoc.bratets.services.telegram.TelegramConnectorService
-import org.rmgsoc.bratets.services.telegram.TelegramTextMessageHandler
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import javax.annotation.PostConstruct
 
 @Service
 class BratetsModuleService(
         val telegramConnectorService: TelegramConnectorService
-) : TelegramTextMessageHandler {
+) : TextMessageHandlerModule {
 
     private var lastBrattsyTime = Instant.EPOCH
 
-    @PostConstruct
-    fun setup() {
+    override fun setup() {
         telegramConnectorService.addTextMessageHandler(this)
     }
 

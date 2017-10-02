@@ -1,6 +1,7 @@
 package org.rmgsoc.bratets.services.telegram
 
 import okhttp3.logging.HttpLoggingInterceptor
+import org.rmgsoc.bratets.services.modules.TextMessageHandlerModule
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.context.annotation.Profile
@@ -13,7 +14,6 @@ import org.yanex.telegram.handler.VisitorUpdateHandler
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-import javax.annotation.PostConstruct
 import kotlin.concurrent.thread
 
 @Service
@@ -21,9 +21,10 @@ import kotlin.concurrent.thread
 class YanexTelegramConnectorService(
         telegramProperties : TelegramProperties
 ): TelegramConnectorService, DisposableBean {
+
     private val logger  = LoggerFactory.getLogger(this.javaClass)
 
-    private val handlers : MutableSet<TelegramTextMessageHandler> = mutableSetOf()
+    private val handlerModules: MutableSet<TextMessageHandlerModule> = mutableSetOf()
 
     private lateinit var handlersPool : ThreadPoolExecutor
     private lateinit var checkupThread : Thread
@@ -39,9 +40,8 @@ class YanexTelegramConnectorService(
                 return
             }
 
-
             try {
-                handlersPool.execute({ handleUpdate(handlers, update) })
+                handlersPool.execute({ handleUpdate(handlerModules, update) })
 
                 logger.debug("Update ${update.updateId} queued successfully")
             } catch (ex: Exception) {
@@ -50,17 +50,16 @@ class YanexTelegramConnectorService(
         }
     }
 
-    private val bot : TelegramBot = TelegramBot.create(token = telegramProperties.key!!,
+    protected var bot : TelegramBot = TelegramBot.create(token = telegramProperties.key!!,
             logLevel = HttpLoggingInterceptor.Level.BASIC)
 
-    @PostConstruct
-    fun setup() {
+    override fun run() : Thread {
         logger.debug("Initializing telegram service")
 
         checkupThread = thread(
                 start = true,
                 name = "Telegram checkup",
-                block = { -> bot.listen(0, VisitorUpdateHandler(updateHandler)) }
+                block = { rerunnableCheckupTread() }
         )
 
         logger.debug("Telegram checkup thread initialized")
@@ -74,11 +73,13 @@ class YanexTelegramConnectorService(
         )
 
         logger.debug("Telegram update handler pool initialized")
+
+        return checkupThread
     }
 
-    override fun addTextMessageHandler(handler: TelegramTextMessageHandler) {
-        handlers.add(handler)
-        logger.debug("Handler ${handler.toString()} added to handler bunch")
+    override fun addTextMessageHandler(handlerModule: TextMessageHandlerModule) {
+        handlerModules.add(handlerModule)
+        logger.debug("Handler ${handlerModule.toString()} added to handlerModule bunch")
     }
 
     override fun sendTextMessageToChat(chatId: Long, message: String) {
@@ -100,11 +101,21 @@ class YanexTelegramConnectorService(
         handlersPool.shutdown()
     }
 
-    private fun handleUpdate(handlers: Set<TelegramTextMessageHandler>, update: Update) {
+    private fun rerunnableCheckupTread() {
+        while(!Thread.interrupted()) {
+            try {
+                bot.listen(0, VisitorUpdateHandler(updateHandler))
+            } catch (ex: Exception) {
+                logger.error("Error during update checkup", ex)
+            }
+        }
+    }
+
+    private fun handleUpdate(handlerModules: Set<TextMessageHandlerModule>, update: Update) {
         logger.debug("Processing update ${update.updateId}")
 
         try {
-            handlers.forEach {
+            handlerModules.forEach {
                 val text = update.message?.text!!
                 if (it.isRelevant(text)) {
                     it.processMessage(text, update.senderId)

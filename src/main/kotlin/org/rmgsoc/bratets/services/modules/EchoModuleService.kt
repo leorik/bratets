@@ -1,17 +1,16 @@
 package org.rmgsoc.bratets.services.modules
 
 import org.rmgsoc.bratets.services.telegram.TelegramConnectorService
-import org.rmgsoc.bratets.services.telegram.TelegramTextMessageHandler
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
-import javax.annotation.PostConstruct
 
 @Service
+@Profile("echo")
 class EchoModuleService(
         val telegramConnectorService: TelegramConnectorService
-) : TelegramTextMessageHandler{
+) : TextMessageHandlerModule {
 
-//    @PostConstruct - disabled
-    fun setup() {
+    override fun setup() {
         telegramConnectorService.addTextMessageHandler(this)
     }
 
