@@ -32,6 +32,14 @@ class YanexTelegramConnectorService(
         override fun visitUpdate(update: Update) {
             logger.debug("Received update ${update.updateId}, queueing for processing")
 
+            if (update.message?.text == null)
+            {
+                logger.debug("Update ${update.updateId} doesn't contain text message, discarding")
+
+                return
+            }
+
+
             try {
                 handlersPool.execute({ handleUpdate(handlers, update) })
 
