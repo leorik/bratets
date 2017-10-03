@@ -1,5 +1,7 @@
 package org.rmgsoc.bratets.services.modules
 
+import org.rmgsoc.bratets.models.db.BroRepository
+import org.rmgsoc.bratets.models.db.BroResponseRepository
 import org.rmgsoc.bratets.services.telegram.TelegramConnectorService
 import org.rmgsoc.bratets.services.telegram.TelegramTextMessageHandler
 import org.springframework.stereotype.Service
@@ -9,7 +11,9 @@ import javax.annotation.PostConstruct
 
 @Service
 class BratetsModuleService(
-        val telegramConnectorService: TelegramConnectorService
+        val telegramConnectorService: TelegramConnectorService,
+        val broRepository: BroRepository,
+        val broResponseRepository: BroResponseRepository
 ) : TelegramTextMessageHandler {
 
     private var lastBrattsyTime = Instant.EPOCH
@@ -19,8 +23,12 @@ class BratetsModuleService(
         telegramConnectorService.addTextMessageHandler(this)
     }
 
+    private val BratsyLiteral = "братцы"
+
     override fun isRelevant(text: String): Boolean {
-        return normalize(text) == "братцы"
+        if (text.length < BratsyLiteral.length) return false
+
+        return normalize(text) == BratsyLiteral
     }
 
     override fun processMessage(text: String, from: Long) {
