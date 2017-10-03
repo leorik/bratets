@@ -1,6 +1,7 @@
 package org.rmgsoc.bratets.services.telegram
 
 import okhttp3.logging.HttpLoggingInterceptor
+import org.rmgsoc.bratets.models.TelegramProperties
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.context.annotation.Profile
