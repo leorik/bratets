@@ -4,7 +4,9 @@ import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface BroRepository : CrudRepository<Bro, Long>
+interface BroRepository : CrudRepository<Bro, Long> {
+    fun getByTelegramId(telegramId: Long) : Bro?
+}
 
 @Repository
 interface BroResponseRepository : CrudRepository<BroResponse, Long>
