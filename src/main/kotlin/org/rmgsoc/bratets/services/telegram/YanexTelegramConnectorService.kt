@@ -111,6 +111,7 @@ class YanexTelegramConnectorService(
 
                     it.processMessage(TextMessage(
                             updateMessage.chat.id,
+                            updateMessage.messageId,
                             TelegramUser(
                                     messageAuthor.id,
                                     messageAuthor.userName!!

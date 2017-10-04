@@ -4,7 +4,8 @@ import org.rmgsoc.bratets.models.TelegramUser
 import org.rmgsoc.bratets.models.TextMessage
 import org.rmgsoc.bratets.models.db.Bro
 import org.rmgsoc.bratets.models.db.BroRepository
-import org.rmgsoc.bratets.models.db.BroResponseRepository
+import org.rmgsoc.bratets.models.db.BroMessage
+import org.rmgsoc.bratets.models.db.BroMessageRepository
 import org.rmgsoc.bratets.services.telegram.TelegramConnectorService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -16,11 +17,15 @@ import javax.annotation.PostConstruct
 class BratetsModuleService(
         val telegramConnectorService: TelegramConnectorService,
         val broRepository: BroRepository,
-        val broResponseRepository: BroResponseRepository
+        val broMessageRepository: BroMessageRepository
 ) : TelegramTextMessageHandler {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
-    private var lastBrattsyTime = Instant.EPOCH
+    companion object {
+        private const val BRATSY_ROUND_DURATION_IN_MINS: Long = 5
+        private const val BRATSY_LITERAL = "братцы"
+    }
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostConstruct
     fun setup() {
@@ -31,12 +36,12 @@ class BratetsModuleService(
         logger.trace("Bratets module init done")
     }
 
-    private val BratsyLiteral = "братцы"
+
 
     override fun isRelevant(text: String): Boolean {
         logger.trace("Got message \"$text\" for relevance check")
 
-        if (text.length < BratsyLiteral.length) {
+        if (text.length < BRATSY_LITERAL.length) {
             logger.trace("Message \"$text\" is not relevant for bratets module")
 
             return false
@@ -44,21 +49,35 @@ class BratetsModuleService(
 
         logger.debug("Message \"$text\" is relevant for bratets module, proceeding")
 
-        return normalize(text) == BratsyLiteral
+        return normalize(text) == BRATSY_LITERAL
     }
 
     override fun processMessage(message: TextMessage) {
-        val authorBro = retrieveOrCreateAuthorBro(message.author)
+        val lastMessage = broMessageRepository.findFirstByOrderByTimeDesc()
 
-        if (lastBrattsyTime.plus(2, ChronoUnit.MINUTES).isBefore(Instant.now())) {
+        if (lastMessage == null ||
+                lastMessage.time.plus(BRATSY_ROUND_DURATION_IN_MINS, ChronoUnit.MINUTES).isBefore(Instant.now())) {
+
             telegramConnectorService.sendTextMessageToChat(message.chatId, "Братцы")
-
-            lastBrattsyTime = Instant.now()
         }
+
+        persistBratsyMessage(message)
     }
 
     private fun normalize(text: String) : String {
         return text.substring(0..5).toLowerCase()
+    }
+
+    private fun persistBratsyMessage(message: TextMessage) {
+        val authorBro = retrieveOrCreateAuthorBro(message.author)
+
+        val dbMessage = BroMessage(
+                telegramId = message.telegramId,
+                author = authorBro,
+                time = Instant.now()
+        )
+
+        broMessageRepository.save(dbMessage)
     }
 
     private fun retrieveOrCreateAuthorBro(author: TelegramUser) : Bro {

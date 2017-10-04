@@ -20,11 +20,14 @@ data class Bro (
         var since: Instant = Instant.MIN)
 
 @Entity
-data class BroResponse(
+data class BroMessage(
         @Id
         @GeneratedValue(strategy = GenerationType.SEQUENCE)
         @Column
         var id: Long = 0,
+
+        @Column
+        var telegramId: Long = 0,
 
         @ManyToOne
         @JoinColumn
