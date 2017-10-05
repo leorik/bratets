@@ -16,8 +16,9 @@
 
 ### NetBeans ###
 nbproject/private/
-build/
 nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+/src/main/resources/telegram.properties
+/src/main/resources/application-prod-db.properties
