@@ -114,7 +114,7 @@ class YanexTelegramConnectorService(
                             updateMessage.messageId,
                             TelegramUser(
                                     messageAuthor.id,
-                                    messageAuthor.userName!!
+                                    messageAuthor.userName ?: messageAuthor.id.toString()
                             ),
                             updateMessage.text!!
                     ))
@@ -136,12 +136,6 @@ class YanexTelegramConnectorService(
 
         if (update.message?.from == null) {
             logger.debug("Update ${update.updateId} doesn't contain author info, discarding")
-
-            return false
-        }
-
-        if (update.message?.from?.userName == null) {
-            logger.debug("Update ${update.updateId} doesn't author username, discarding")
 
             return false
         }
