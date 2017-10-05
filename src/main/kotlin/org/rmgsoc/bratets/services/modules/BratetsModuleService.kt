@@ -53,7 +53,7 @@ class BratetsModuleService(
     }
 
     override fun processMessage(message: TextMessage) {
-        val lastMessage = broMessageRepository.findFirstByOrderByTimeDesc()
+        val lastMessage = broMessageRepository.findFirstByChatIdOrderByTimeDesc(message.chatId)
 
         if (lastMessage == null ||
                 lastMessage.time.plus(BRATSY_ROUND_DURATION_IN_MINS, ChronoUnit.MINUTES).isBefore(Instant.now())) {
@@ -74,6 +74,7 @@ class BratetsModuleService(
         val dbMessage = BroMessage(
                 telegramId = message.telegramId,
                 author = authorBro,
+                chatId = message.chatId,
                 time = Instant.now()
         )
 

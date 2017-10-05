@@ -9,8 +9,5 @@ interface BroRepository : CrudRepository<Bro, Long> {
 }
 
 interface BroMessageRepository : CrudRepository<BroMessage, Long> {
-//    @Query("SELECT m FROM BroMessage m ORDER BY m.time DESC")
-//    fun getLatestResponse() : BroMessage
-
-    fun findFirstByOrderByTimeDesc() : BroMessage?
+    fun findFirstByChatIdOrderByTimeDesc(chatId: Long) : BroMessage?
 }

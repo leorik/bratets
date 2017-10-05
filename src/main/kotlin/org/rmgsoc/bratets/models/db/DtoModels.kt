@@ -29,6 +29,9 @@ data class BroMessage(
         @Column
         var telegramId: Long = 0,
 
+        @Column
+        var chatId: Long = 0,
+
         @ManyToOne
         @JoinColumn
         var author : Bro = Bro(),
