@@ -1,4 +1,4 @@
-package org.rmgsoc.bratets.services.telegram
+package org.rmgsoc.bratets.models
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration

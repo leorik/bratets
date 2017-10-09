@@ -1,11 +1,16 @@
 package org.rmgsoc.bratets.services.telegram
 
 import okhttp3.logging.HttpLoggingInterceptor
+import org.rmgsoc.bratets.models.TelegramProperties
+import org.rmgsoc.bratets.models.TelegramUser
+import org.rmgsoc.bratets.models.TextMessage
+import org.rmgsoc.bratets.services.modules.TelegramTextMessageHandler
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.yanex.telegram.TelegramBot
+import org.yanex.telegram.entities.Message
 import org.yanex.telegram.entities.Update
 import org.yanex.telegram.handler.AbstractUpdateVisitor
 import org.yanex.telegram.handler.UpdateVisitor
@@ -32,13 +37,7 @@ class YanexTelegramConnectorService(
         override fun visitUpdate(update: Update) {
             logger.debug("Received update ${update.updateId}, queueing for processing")
 
-            if (update.message?.text == null)
-            {
-                logger.debug("Update ${update.updateId} doesn't contain text message, discarding")
-
-                return
-            }
-
+            if (!isUpdateProcessable(update)) return
 
             try {
                 handlersPool.execute({ handleUpdate(handlers, update) })
@@ -107,7 +106,18 @@ class YanexTelegramConnectorService(
             handlers.forEach {
                 val text = update.message?.text!!
                 if (it.isRelevant(text)) {
-                    it.processMessage(text, update.senderId)
+                    val updateMessage = update.message!!
+                    val messageAuthor = updateMessage.from!!
+
+                    it.processMessage(TextMessage(
+                            updateMessage.chat.id,
+                            updateMessage.messageId,
+                            TelegramUser(
+                                    messageAuthor.id,
+                                    messageAuthor.userName ?: messageAuthor.id.toString()
+                            ),
+                            updateMessage.text!!
+                    ))
                 }
             }
 
@@ -115,5 +125,21 @@ class YanexTelegramConnectorService(
         } catch (ex: Exception) {
             logger.error("Error during processing update ${update.updateId}", ex)
         }
+    }
+
+    private fun isUpdateProcessable(update: Update) : Boolean {
+        if (update.message?.text == null) {
+            logger.debug("Update ${update.updateId} doesn't contain text message, discarding")
+
+            return false
+        }
+
+        if (update.message?.from == null) {
+            logger.debug("Update ${update.updateId} doesn't contain author info, discarding")
+
+            return false
+        }
+
+        return true
     }
 }
