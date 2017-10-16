@@ -10,11 +10,11 @@ import org.springframework.beans.factory.DisposableBean
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.yanex.telegram.TelegramBot
-import org.yanex.telegram.entities.Message
 import org.yanex.telegram.entities.Update
 import org.yanex.telegram.handler.AbstractUpdateVisitor
 import org.yanex.telegram.handler.UpdateVisitor
 import org.yanex.telegram.handler.VisitorUpdateHandler
+import java.net.SocketTimeoutException
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -26,12 +26,23 @@ import kotlin.concurrent.thread
 class YanexTelegramConnectorService(
         telegramProperties : TelegramProperties
 ): TelegramConnectorService, DisposableBean {
-    private val logger  = LoggerFactory.getLogger(this.javaClass)
+    companion object {
+        private val logger = LoggerFactory.getLogger(YanexTelegramConnectorService::class.java)
+
+        private const val MAX_ALLOWED_TIMEOUTS : Int = 100
+        private val LOCK = object {}
+    }
 
     private val handlers : MutableSet<TelegramTextMessageHandler> = mutableSetOf()
 
     private lateinit var handlersPool : ThreadPoolExecutor
     private lateinit var checkupThread : Thread
+
+    @Volatile
+    private var timeOutCount = 0
+
+    @Volatile
+    private var hasShutdown = false
 
     private val updateHandler : UpdateVisitor = object : AbstractUpdateVisitor() {
         override fun visitUpdate(update: Update) {
@@ -59,7 +70,7 @@ class YanexTelegramConnectorService(
         checkupThread = thread(
                 start = true,
                 name = "Telegram checkup",
-                block = { -> bot.listen(0, VisitorUpdateHandler(updateHandler)) }
+                block = { -> telegramCheckupRoutine() }
         )
 
         logger.debug("Telegram checkup thread initialized")
@@ -82,6 +93,9 @@ class YanexTelegramConnectorService(
 
     override fun sendTextMessageToChat(chatId: Long, message: String) {
         logger.debug("Sending message \"$message\" to chat with ID = $chatId")
+
+        if (hasShutdown)
+            throw IllegalStateException("Telegram connection was shutdown due previous errors")
 
         try {
             val request = bot.sendMessage(chatId, message)
@@ -141,5 +155,37 @@ class YanexTelegramConnectorService(
         }
 
         return true
+    }
+
+    private fun telegramCheckupRoutine() {
+        while (!Thread.interrupted()) {
+            try {
+                bot.listen(0, VisitorUpdateHandler(updateHandler))
+
+                synchronized(LOCK) {
+                    timeOutCount = 0
+                }
+            } catch (ex: SocketTimeoutException) {
+                synchronized(LOCK) {
+                    timeOutCount += 1
+
+                    logger.warn("Timeout on Telegram update, $timeOutCount of $MAX_ALLOWED_TIMEOUTS")
+
+                    if (timeOutCount >= MAX_ALLOWED_TIMEOUTS) {
+                        logger.error("Maximum allowed timeout quota exceeded, shutting down")
+
+                        this.shutdown()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun shutdown() {
+        // TODO Implement update cycle interruptions
+        hasShutdown = true
+        this.destroy()
+
+        logger.debug("Shutdown completed")
     }
 }
